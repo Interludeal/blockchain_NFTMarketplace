@@ -1,10 +1,10 @@
 import type { Abi } from 'viem'
 
 export const tokenAddress =
-  '0xC094375e5BC89062Fd32EAcEfE4f90D40B5Bc2DE' as const
-export const nftAddress = '0xA1f35ae8F31BE719Cb94F16F6d065F2C689f175C' as const
+  '0xdC0eD813EeCdd50B862F94b31f99a6a7a27825cA' as const
+export const nftAddress = '0xF58d856F73D06a182FeFa588B347D1961Dd045d6' as const
 export const marketplaceAddress =
-  '0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8' as const
+  '0xad3742Df4f26aa13933F5D3973Bf76Eb94A43C97' as const
 
 export const tokenABI = [
   {
@@ -1422,6 +1422,41 @@ export const marketplaceABI = [
         name: '',
         type: 'address',
       },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: '_tokenId', type: 'uint256' },
+      { internalType: 'uint256', name: '_offerPrice', type: 'uint256' },
+    ],
+    name: 'makeOffer',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '_tokenId', type: 'uint256' }],
+    name: 'cancelOffer',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '_tokenId', type: 'uint256' }],
+    name: 'acceptOffer',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '_tokenId', type: 'uint256' }],
+    name: 'getOffer',
+    outputs: [
+      { internalType: 'address', name: 'buyer', type: 'address' },
+      { internalType: 'uint256', name: 'price', type: 'uint256' },
+      { internalType: 'bool', name: 'isActive', type: 'bool' },
     ],
     stateMutability: 'view',
     type: 'function',

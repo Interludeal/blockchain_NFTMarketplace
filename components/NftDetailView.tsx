@@ -1,8 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useAccount, useReadContract } from 'wagmi'
+import {
+  useAccount,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from 'wagmi'
 import {
   marketplaceABI,
   marketplaceAddress,
@@ -59,7 +65,53 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
     abi: tokenABI,
     functionName: 'symbol',
   })
+  const { data: offerData, refetch: refetchOffer } = useReadContract({
+    address: marketplaceAddress,
+    abi: marketplaceABI,
+    functionName: 'getOffer',
+    args: [tokenId],
+  })
 
+  const { writeContract, data: hash, isPending } = useWriteContract()
+  const { isSuccess: isMined } = useWaitForTransactionReceipt({ hash })
+
+  const [offerInput, setOfferInput] = useState('')
+
+  const offerBuyer = offerData?.[0] as string | undefined
+  const offerPrice = offerData?.[1] as bigint | undefined
+  const offerIsActive = offerData?.[2] as boolean | undefined
+
+  const isOfferMine = Boolean(
+    address && offerBuyer && offerBuyer.toLowerCase() === address.toLowerCase(),
+  )
+
+  const doMakeOffer = () => {
+    if (!offerInput) return
+    writeContract({
+      address: marketplaceAddress,
+      abi: marketplaceABI,
+      functionName: 'makeOffer',
+      args: [tokenId, BigInt(offerInput)],
+    })
+  }
+
+  const doCancelOffer = () => {
+    writeContract({
+      address: marketplaceAddress,
+      abi: marketplaceABI,
+      functionName: 'cancelOffer',
+      args: [tokenId],
+    })
+  }
+
+  const doAcceptOffer = () => {
+    writeContract({
+      address: marketplaceAddress,
+      abi: marketplaceABI,
+      functionName: 'acceptOffer',
+      args: [tokenId],
+    })
+  }
   const { metadata, imageUrl, loading } = useNftMetadata(tokenUri)
 
   const tokenDecimals = decimals ?? 18
@@ -70,9 +122,7 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
   const seller = listing?.[1]
 
   const isOwner =
-    address &&
-    owner &&
-    owner.toLowerCase() === address.toLowerCase()
+    address && owner && owner.toLowerCase() === address.toLowerCase()
 
   const isSeller =
     address &&
@@ -201,6 +251,77 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
                   이 NFT는 현재 판매되지 않습니다.
                 </p>
               )}
+              {/* 오퍼 섹션 */}
+              <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                <p className="mb-2 text-sm font-semibold">구매 제안 (Offer)</p>
+
+                {/* 현재 오퍼 정보 표시 */}
+                {offerIsActive && offerBuyer && offerPrice !== undefined && (
+                  <div className="mb-3 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700">
+                    <p className="text-zinc-500">
+                      제안자:{' '}
+                      <span className="font-mono">
+                        {shortenAddress(offerBuyer, 6)}
+                      </span>
+                    </p>
+                    <p className="text-zinc-500">
+                      제안 가격:{' '}
+                      <span className="font-medium text-violet-600">
+                        {formatTokenAmount(
+                          offerPrice,
+                          tokenDecimals,
+                          tokenSymbol,
+                        )}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {/* 소유자: 오퍼 수락 버튼 */}
+                {isOwner && offerIsActive && (
+                  <button
+                    className="mb-2 w-full rounded-lg bg-green-600 px-4 py-2 text-sm text-white disabled:opacity-40"
+                    disabled={isPending}
+                    onClick={doAcceptOffer}
+                  >
+                    오퍼 수락 (NFT 판매)
+                  </button>
+                )}
+
+                {/* 구매자: 내 오퍼 취소 버튼 */}
+                {isOfferMine && offerIsActive && (
+                  <button
+                    className="mb-2 w-full rounded-lg border border-zinc-300 px-4 py-2 text-sm disabled:opacity-40"
+                    disabled={isPending}
+                    onClick={doCancelOffer}
+                  >
+                    내 오퍼 취소
+                  </button>
+                )}
+
+                {/* 구매자: 새 오퍼 제안 */}
+                {!isOwner && !offerIsActive && isConnected && (
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-700 dark:bg-zinc-800"
+                      placeholder="제안 가격 (토큰 최소 단위)"
+                      value={offerInput}
+                      onChange={(e) => setOfferInput(e.target.value)}
+                    />
+                    <button
+                      className="rounded-lg bg-violet-600 px-4 py-2 text-sm text-white disabled:opacity-40"
+                      disabled={!offerInput || isPending}
+                      onClick={doMakeOffer}
+                    >
+                      제안하기
+                    </button>
+                  </div>
+                )}
+
+                {isMined && (
+                  <p className="mt-2 text-sm text-green-600">✅ 완료</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
